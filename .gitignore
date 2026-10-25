@@ -1,0 +1,5 @@
+# Exported data backups — personal, keep out of the repo
+life-tracker-*.json
+
+.DS_Store
+Thumbs.db
