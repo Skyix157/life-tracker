@@ -4,65 +4,55 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Life Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <h1>Life Tracker</h1>
-    <p id="today"></p>
+  <header class="topbar">
+    <a class="brand" href="#/overview"><span class="brand-dot">✦</span>Life Tracker</a>
+    <nav class="tabs" id="tabs">
+      <a href="#/daily" data-page="daily">Daily</a>
+      <a href="#/weekly" data-page="weekly">Weekly</a>
+      <a href="#/monthly" data-page="monthly">Monthly</a>
+      <a href="#/overview" data-page="overview">Overview</a>
+    </nav>
   </header>
 
-  <main>
-    <section class="card">
-      <h2>Habits</h2>
-      <form id="habit-form">
-        <input id="habit-name" placeholder="New habit, e.g. Read 20 min" maxlength="60" required>
-        <button type="submit">Add</button>
-      </form>
-      <div class="table-wrap">
-        <table id="habit-table">
-          <thead><tr id="habit-head"></tr></thead>
-          <tbody id="habit-body"></tbody>
-        </table>
+  <main id="view" class="view"></main>
+
+  <footer class="footer">
+    <span>Saved in this browser only.</span>
+    <button id="export" class="link-btn">Export backup</button>
+    <label class="link-btn">Import backup<input id="import" type="file" accept="application/json" hidden></label>
+    <span id="import-status"></span>
+  </footer>
+
+  <dialog id="event-dialog">
+    <form id="event-form">
+      <h3 id="event-dialog-title">Add schedule</h3>
+      <label>Title <input name="title" required maxlength="80" placeholder="e.g. Physics midterm"></label>
+      <div class="row3">
+        <label>Date <input name="date" type="date" required></label>
+        <label>Start <input name="start" type="time" required></label>
+        <label>End <input name="end" type="time"></label>
       </div>
-      <p id="habit-empty" class="muted">No habits yet. Add one above.</p>
-    </section>
+      <fieldset class="type-pick" id="event-types"><legend>Type</legend></fieldset>
+      <div class="dialog-actions">
+        <button type="button" id="event-delete" class="ghost danger">Delete</button>
+        <span class="spacer"></span>
+        <button type="button" id="event-cancel" class="ghost">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
 
-    <section class="card">
-      <h2>Today's check-in</h2>
-      <form id="log-form">
-        <label>Mood
-          <select id="mood">
-            <option value="">–</option>
-            <option value="1">1 · rough</option>
-            <option value="2">2 · meh</option>
-            <option value="3">3 · okay</option>
-            <option value="4">4 · good</option>
-            <option value="5">5 · great</option>
-          </select>
-        </label>
-        <label>Sleep (hours)
-          <input id="sleep" type="number" min="0" max="24" step="0.5">
-        </label>
-        <label class="full">Notes
-          <textarea id="notes" rows="3" placeholder="How did today go?"></textarea>
-        </label>
-        <button type="submit">Save</button>
-        <span id="saved" class="muted"></span>
-      </form>
-    </section>
-
-    <section class="card">
-      <h2>Recent days</h2>
-      <ul id="history"></ul>
-    </section>
-
-    <section class="card actions">
-      <button id="export">Export data</button>
-      <label class="button">Import data<input id="import" type="file" accept="application/json" hidden></label>
-    </section>
-  </main>
-
-  <script src="app.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/daily.js"></script>
+  <script src="js/weekly.js"></script>
+  <script src="js/monthly.js"></script>
+  <script src="js/overview.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>
