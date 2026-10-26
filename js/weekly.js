@@ -13,14 +13,18 @@ function renderWeekly(view, key) {
     ? `${fmt(monday, { month: "long", day: "numeric" })} – ${sunday.getDate()}, ${sunday.getFullYear()}`
     : `${fmt(monday, { month: "short", day: "numeric" })} – ${fmt(sunday, { month: "short", day: "numeric", year: "numeric" })}`;
 
-  const nav = el("div", { class: "page-nav" },
-    el("a", { class: "icon-btn", href: `#/weekly/${dateKey(addDays(monday, -7))}`, title: "Previous week" }, "‹"),
-    el("a", { class: "icon-btn", href: `#/weekly/${dateKey(addDays(monday, 7))}`, title: "Next week" }, "›"),
-    el("h2", {}, title),
-    el("span", { class: "spacer" }),
-    !days.some((d) => dateKey(d) === today) && el("a", { class: "pill-btn", href: "#/weekly" }, "This week"),
-    el("button", { class: "primary", onclick: () => openEventDialog(null, { date: days.some((d) => dateKey(d) === today) ? today : dateKey(monday) }) }, "+ Add schedule"),
-  );
+  const isThisWeek = days.some((d) => dateKey(d) === today);
+  const count = days.reduce((n, d) => n + eventsOn(dateKey(d)).length, 0);
+  const nav = toolbar({
+    title,
+    subtitle: `${count} schedule${count === 1 ? "" : "s"}`,
+    prev: { href: `#/weekly/${dateKey(addDays(monday, -7))}`, title: "Previous week" },
+    next: { href: `#/weekly/${dateKey(addDays(monday, 7))}`, title: "Next week" },
+    actions: [
+      !isThisWeek && el("a", { class: "pill-btn", href: "#/weekly" }, "This week"),
+      el("button", { class: "primary", onclick: () => openEventDialog(null, { date: isThisWeek ? today : dateKey(monday) }) }, "+ Add schedule"),
+    ],
+  });
 
   const head = el("div", { class: "wk-head" },
     el("span"),
@@ -59,10 +63,18 @@ function renderWeekly(view, key) {
           height: `${((end - start) / 60) * HOUR_PX - 2}px`,
           left: `calc(${(lane / lanes) * 100}% + 2px)`,
           width: `calc(${100 / lanes}% - 4px)`,
-          background: findById(EVENT_TYPES, ev.type).color,
+          "--c": findById(EVENT_TYPES, ev.type).color,
         },
         onclick: () => openEventDialog(ev),
       }, el("strong", {}, ev.title), el("span", {}, `${ev.start}–${ev.end}`)));
+    }
+    // Calendar-style red line at the current time.
+    if (k === today) {
+      const now = new Date();
+      const minutes = now.getHours() * 60 + now.getMinutes();
+      if (minutes >= WEEK_START_HOUR * 60) {
+        col.append(el("span", { class: "now-line", style: { top: `${((minutes - WEEK_START_HOUR * 60) / 60) * HOUR_PX}px` } }));
+      }
     }
     return col;
   });
@@ -107,5 +119,6 @@ function layoutLanes(events) {
 function typeLegend() {
   return el("div", { class: "legend" },
     EVENT_TYPES.map((t) => el("span", {}, el("i", { style: { background: t.color } }), t.name)),
+    el("span", { class: "legend-hint" }, "Click an empty slot to add · click a schedule to edit"),
   );
 }

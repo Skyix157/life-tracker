@@ -3,15 +3,15 @@
 const STORAGE_KEY = "life-tracker-v2";
 const OLD_STORAGE_KEY = "life-tracker-v1";
 
-// Colors for painting the daily timeline.
+// Colors for painting the daily timeline (Apple system colors).
 const CATEGORIES = [
-  { id: "study", name: "Deep study", color: "#c7a2c0" },
-  { id: "class", name: "Class", color: "#9db4e2" },
-  { id: "exercise", name: "Exercise", color: "#e8954a" },
-  { id: "sleep", name: "Sleep", color: "#8a8d96" },
-  { id: "meal", name: "Meal", color: "#f0cf8f" },
-  { id: "social", name: "Social", color: "#93cba8" },
-  { id: "other", name: "Other", color: "#cfcac0" },
+  { id: "study", name: "Deep study", color: "#6155f5" },
+  { id: "class", name: "Class", color: "#0088ff" },
+  { id: "exercise", name: "Exercise", color: "#ff8d28" },
+  { id: "sleep", name: "Sleep", color: "#8e8e93" },
+  { id: "meal", name: "Meal", color: "#ffcc00" },
+  { id: "social", name: "Social", color: "#34c759" },
+  { id: "other", name: "Other", color: "#ac7f5e" },
 ];
 
 // Daily target in minutes for each category; fills the overview's focus rings.
@@ -19,12 +19,12 @@ const CATEGORY_GOALS = { study: 360, class: 300, exercise: 60, sleep: 480, meal:
 
 // Color-coded types for weekly/monthly schedules.
 const EVENT_TYPES = [
-  { id: "class", name: "Class", color: "#9db4e2" },
-  { id: "exam", name: "Exam / Deadline", color: "#ef8f78" },
-  { id: "study", name: "Study", color: "#c7a2c0" },
-  { id: "work", name: "Work", color: "#aab4c3" },
-  { id: "health", name: "Health", color: "#93cba8" },
-  { id: "personal", name: "Personal", color: "#f0cf8f" },
+  { id: "class", name: "Class", color: "#0088ff" },
+  { id: "exam", name: "Exam / Deadline", color: "#ff383c" },
+  { id: "study", name: "Study", color: "#6155f5" },
+  { id: "work", name: "Work", color: "#00c3d0" },
+  { id: "health", name: "Health", color: "#34c759" },
+  { id: "personal", name: "Personal", color: "#ff8d28" },
 ];
 
 const MOOD_LABELS = ["", "Rough", "Meh", "Okay", "Good", "Great"];
@@ -159,7 +159,12 @@ function el(tag, props = {}, ...children) {
   for (const [key, value] of Object.entries(props)) {
     if (value == null || value === false) continue;
     if (key === "class") node.className = value;
-    else if (key === "style") Object.assign(node.style, value);
+    else if (key === "style") {
+      for (const [prop, v] of Object.entries(value)) {
+        if (prop.startsWith("--")) node.style.setProperty(prop, v);
+        else node.style[prop] = v;
+      }
+    }
     else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
     else if (key === "value" || key === "checked") node[key] = value;
     else node.setAttribute(key, value === true ? "" : value);
@@ -171,11 +176,34 @@ function el(tag, props = {}, ...children) {
   return node;
 }
 
+// Element whose content is trusted inline SVG markup.
+function svgIcon(markup, cls = "ico") {
+  const span = el("span", { class: cls, "aria-hidden": "true" });
+  span.innerHTML = markup;
+  return span;
+}
+
+const CHEVRON_LEFT = '<svg viewBox="0 0 20 20"><path d="M12.5 4.5 7 10l5.5 5.5"/></svg>';
+const CHEVRON_RIGHT = '<svg viewBox="0 0 20 20"><path d="M7.5 4.5 13 10l-5.5 5.5"/></svg>';
+
+// The glass toolbar at the top of every page: back/forward, title + subtitle, then actions on the right.
+function toolbar({ title, subtitle, prev, next, actions = [] }) {
+  return el("div", { class: "page-nav" },
+    prev && el("div", { class: "glass-group" },
+      el("a", { class: "icon-btn", href: prev.href, title: prev.title }, svgIcon(CHEVRON_LEFT)),
+      el("a", { class: "icon-btn", href: next.href, title: next.title }, svgIcon(CHEVRON_RIGHT)),
+    ),
+    el("div", { class: "title-block" }, el("h2", {}, title), subtitle && el("span", { class: "subtitle" }, subtitle)),
+    el("span", { class: "spacer" }),
+    actions,
+  );
+}
+
 // SVG face for a 1–5 mood; an empty dashed circle when there's no mood.
 function moodFace(value, size = 40) {
   const svg = (inner) => `<svg viewBox="0 0 40 40" width="${size}" height="${size}" aria-hidden="true">${inner}</svg>`;
-  if (!value) return svg('<circle cx="20" cy="20" r="18" fill="none" stroke="#d3cfc7" stroke-width="2" stroke-dasharray="4 4"/>');
-  const colors = { 1: "#d9782b", 2: "#e8954a", 3: "#f0cf8f", 4: "#d4b6cf", 5: "#c7a2c0" };
+  if (!value) return svg('<circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="2" stroke-dasharray="4 4"/>');
+  const colors = { 1: "#ff383c", 2: "#ff8d28", 3: "#ffcc00", 4: "#34c759", 5: "#00c3d0" };
   const mouths = {
     1: "M13 29 Q20 22 27 29",
     2: "M12 27 Q14 24 16 27 Q18 30 20 27 Q22 24 24 27 Q26 30 28 27",

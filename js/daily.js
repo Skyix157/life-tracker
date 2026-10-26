@@ -1,4 +1,4 @@
-// Daily page, laid out like a bullet-journal spread:
+// Daily page, laid out like the bullet-journal spread:
 // matrix + tasks top left, a 10-minute timeline on the right,
 // 3 gratitudes + news bottom left, routines bottom right.
 let paintCategory = "study";
@@ -8,8 +8,24 @@ document.addEventListener("pointerup", () => stopPainting && stopPainting());
 function renderDaily(view, key) {
   const date = parseKey(key);
   const day = getDay(key);
+  const isToday = key === todayKey();
   view.append(
-    dailyNav(date, key),
+    toolbar({
+      title: date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }),
+      subtitle: isToday ? `Today · ${date.getFullYear()}` : String(date.getFullYear()),
+      prev: { href: `#/daily/${dateKey(addDays(date, -1))}`, title: "Previous day" },
+      next: { href: `#/daily/${dateKey(addDays(date, 1))}`, title: "Next day" },
+      actions: [
+        !isToday && el("a", { class: "pill-btn", href: "#/daily" }, "Today"),
+        el("input", {
+          class: "pill-btn",
+          type: "date",
+          value: key,
+          "aria-label": "Go to date",
+          onchange: (e) => e.target.value && (location.hash = `#/daily/${e.target.value}`),
+        }),
+      ],
+    }),
     el("div", { class: "paper" },
       el("section", { class: "d-main" }, matrixSection(day), taskSection(day, key)),
       timelineSection(day),
@@ -19,20 +35,8 @@ function renderDaily(view, key) {
   );
 }
 
-function dailyNav(date, key) {
-  return el("div", { class: "page-nav" },
-    el("a", { class: "icon-btn", href: `#/daily/${dateKey(addDays(date, -1))}`, title: "Previous day" }, "‹"),
-    el("a", { class: "icon-btn", href: `#/daily/${dateKey(addDays(date, 1))}`, title: "Next day" }, "›"),
-    el("h2", {}, date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })),
-    el("span", { class: "spacer" }),
-    key !== todayKey() && el("a", { class: "pill-btn", href: "#/daily" }, "Today"),
-    el("input", {
-      class: "pill-btn",
-      type: "date",
-      value: key,
-      onchange: (e) => e.target.value && (location.hash = `#/daily/${e.target.value}`),
-    }),
-  );
+function sectionHeader(title, ...extra) {
+  return el("div", { class: "section-head" }, el("h3", {}, title), extra);
 }
 
 function matrixSection(day) {
@@ -41,34 +45,40 @@ function matrixSection(day) {
     const btn = el("button", {
       class: "mood-btn" + (day.mood === v ? " selected" : ""),
       title: MOOD_LABELS[v],
+      "aria-label": MOOD_LABELS[v],
       onclick: () => {
         day.mood = day.mood === v ? null : v;
         saveData();
         render();
       },
     });
-    btn.innerHTML = moodFace(v, 28);
+    btn.innerHTML = moodFace(v, 26);
     return btn;
   });
   return el("div", { class: "matrix" },
-    el("div", { class: "matrix-title" }, "* Daily Matrix"),
-    matrixRow(day, "sleep", "*", "Sleep", totals.sleep),
-    matrixRow(day, "study", "–", "Deep Study", totals.study),
-    matrixRow(day, "exercise", "–", "Exercise", totals.exercise),
-    el("div", { class: "matrix-row" }, "* Mood : ", el("span", { class: "mood-pick" }, moodButtons)),
+    sectionHeader("Daily Matrix"),
+    el("div", { class: "group" },
+      matrixRow(day, "sleep", "Sleep", totals.sleep),
+      matrixRow(day, "study", "Deep study", totals.study),
+      matrixRow(day, "exercise", "Exercise", totals.exercise),
+      el("div", { class: "matrix-row" },
+        el("span", { class: "m-label" }, "Mood"),
+        el("span", { class: "mood-pick" }, moodButtons),
+      ),
+    ),
   );
 }
 
-function matrixRow(day, field, bullet, label, timelineMinutes) {
+function matrixRow(day, field, label, timelineMinutes) {
   const value = day.matrix[field];
-  const hours = el("input", { class: "num", type: "number", min: 0, max: 24, value: value == null ? "" : Math.floor(value / 60), oninput: update });
-  const mins = el("input", { class: "num", type: "number", min: 0, max: 59, value: value == null ? "" : value % 60, oninput: update });
+  const hours = el("input", { class: "num", type: "number", min: 0, max: 24, placeholder: "0", "aria-label": `${label} hours`, value: value == null ? "" : Math.floor(value / 60), oninput: update });
+  const mins = el("input", { class: "num", type: "number", min: 0, max: 59, placeholder: "00", "aria-label": `${label} minutes`, value: value == null ? "" : value % 60, oninput: update });
   function update() {
     day.matrix[field] = hours.value === "" && mins.value === "" ? null : (Number(hours.value) || 0) * 60 + (Number(mins.value) || 0);
     saveData();
   }
   return el("div", { class: "matrix-row" },
-    `${bullet} Hrs of ${label} : `, hours, "h ", mins, "m",
+    el("span", { class: "m-label" }, label),
     timelineMinutes > 0 && timelineMinutes !== value && el("button", {
       class: "hint",
       title: "Use the total from your timeline",
@@ -77,7 +87,8 @@ function matrixRow(day, field, bullet, label, timelineMinutes) {
         saveData();
         render();
       },
-    }, `timeline: ${fmtHM(timelineMinutes)}`),
+    }, `Timeline ${fmtHM(timelineMinutes)}`),
+    el("span", { class: "m-value" }, hours, el("span", { class: "unit" }, "h"), mins, el("span", { class: "unit" }, "m")),
   );
 }
 
@@ -85,19 +96,22 @@ function taskSection(day, key) {
   const groups = [...new Set(day.tasks.map((t) => t.group))];
   const knownGroups = [...new Set(Object.values(data.days).flatMap((d) => d.tasks.map((t) => t.group)).filter(Boolean))];
   const groupInput = el("input", {
-    class: "group-input",
+    class: "field group-input",
     list: "group-options",
     placeholder: "Group",
+    "aria-label": "Task group",
     maxlength: 20,
     value: groups[groups.length - 1] || knownGroups[0] || "School",
   });
-  const textInput = el("input", { id: "task-text", class: "task-input", placeholder: "Add a task…", maxlength: 120 });
+  const textInput = el("input", { id: "task-text", class: "field task-input", placeholder: "Add a task", "aria-label": "New task", maxlength: 120 });
   const carry = carryOverCandidates(day, key);
+  const done = day.tasks.filter((t) => t.done).length;
 
   return el("div", { class: "tasks" },
+    sectionHeader("Tasks", day.tasks.length > 0 && el("span", { class: "count" }, `${done} of ${day.tasks.length} done`)),
     groups.map((g) => el("div", { class: "task-group" },
-      el("div", { class: "group-label" }, `${g || "Tasks"} :`),
-      el("ul", {}, day.tasks.filter((t) => t.group === g).map((t) => taskItem(day, t))),
+      el("div", { class: "group-label" }, g || "Tasks"),
+      el("ul", { class: "group" }, day.tasks.filter((t) => t.group === g).map((t) => taskItem(day, t))),
     )),
     el("form", {
       class: "add-task",
@@ -113,7 +127,7 @@ function taskSection(day, key) {
     },
       groupInput,
       textInput,
-      el("button", { class: "add-btn", type: "submit", title: "Add task" }, "+"),
+      el("button", { class: "add-btn", type: "submit", title: "Add task", "aria-label": "Add task" }, "+"),
       el("datalist", { id: "group-options" }, knownGroups.map((g) => el("option", { value: g }))),
     ),
     carry && el("button", {
@@ -123,7 +137,7 @@ function taskSection(day, key) {
         saveData();
         render();
       },
-    }, `↳ bring over ${carry.tasks.length} unfinished from ${carry.label}`),
+    }, `Bring over ${carry.tasks.length} unfinished from ${carry.label}`),
   );
 }
 
@@ -136,26 +150,29 @@ function carryOverCandidates(day, key) {
     if (!prev || !prev.tasks.length) continue;
     const tasks = prev.tasks.filter((t) => !t.done && !day.tasks.some((x) => x.text === t.text && x.group === t.group));
     if (!tasks.length) return null;
-    return { tasks, label: prevDate.toLocaleDateString(undefined, { weekday: "short" }) };
+    return { tasks, label: prevDate.toLocaleDateString(undefined, { weekday: "long" }) };
   }
   return null;
 }
 
 function taskItem(day, task) {
   const li = el("li", { class: "task" + (task.done ? " done" : "") },
-    el("input", {
-      type: "checkbox",
-      checked: task.done,
-      onchange: (e) => {
-        task.done = e.target.checked;
-        li.classList.toggle("done", task.done);
-        saveData();
-      },
-    }),
-    el("span", { class: "task-text" }, task.text),
+    el("label", { class: "task-check" },
+      el("input", {
+        type: "checkbox",
+        checked: task.done,
+        onchange: (e) => {
+          task.done = e.target.checked;
+          li.classList.toggle("done", task.done);
+          saveData();
+        },
+      }),
+      el("span", { class: "task-text" }, task.text),
+    ),
     el("button", {
       class: "del",
       title: "Delete task",
+      "aria-label": `Delete ${task.text}`,
       onclick: () => {
         day.tasks = day.tasks.filter((t) => t !== task);
         saveData();
@@ -229,36 +246,41 @@ function timelineSection(day) {
   const totals = timelineTotals(day);
   const used = CATEGORIES.filter((c) => totals[c.id]);
   return el("section", { class: "d-timeline" },
-    el("div", { class: "tl-help" }, "Pick a color, then tap or drag. One box = 10 min."),
+    sectionHeader("Timeline"),
+    el("p", { class: "tl-help" }, "Pick a color, then tap or drag. Each box is 10 minutes."),
     palette,
     grid,
     used.length > 0 && el("div", { class: "tl-totals" },
-      used.map((c) => el("span", {}, el("span", { class: "sw", style: { background: c.color } }), `${c.name} ${fmtHM(totals[c.id])}`)),
+      used.map((c) => el("span", {}, el("span", { class: "sw", style: { background: c.color } }), c.name, el("b", {}, fmtHM(totals[c.id])))),
     ),
   );
 }
 
 function notesSection(day) {
   return el("section", { class: "d-notes" },
-    el("div", { class: "tag" }, "[3G]"),
-    [0, 1, 2].map((n) => el("div", { class: "line" },
-      el("span", { class: "bullet" }, "•"),
-      el("input", {
-        class: "line-input",
-        value: day.gratitude[n] || "",
-        placeholder: n === 0 ? "Something I'm grateful for…" : "",
-        maxlength: 140,
-        oninput: (e) => {
-          day.gratitude[n] = e.target.value;
-          saveData();
-        },
-      }),
-    )),
-    el("div", { class: "tag news-tag" }, "[News]"),
+    sectionHeader("3G", el("span", { class: "count" }, "Three things I'm grateful for")),
+    el("div", { class: "group" },
+      [0, 1, 2].map((n) => el("div", { class: "line" },
+        el("span", { class: "line-num" }, n + 1),
+        el("input", {
+          class: "line-input",
+          value: day.gratitude[n] || "",
+          placeholder: "I'm grateful for…",
+          "aria-label": `Gratitude ${n + 1}`,
+          maxlength: 140,
+          oninput: (e) => {
+            day.gratitude[n] = e.target.value;
+            saveData();
+          },
+        }),
+      )),
+    ),
+    sectionHeader("News"),
     el("textarea", {
-      class: "lined",
+      class: "field lined",
       rows: 5,
       placeholder: "What happened today?",
+      "aria-label": "News",
       value: day.news,
       oninput: (e) => {
         day.news = e.target.value;
@@ -270,36 +292,37 @@ function notesSection(day) {
 
 function routineSection(day) {
   const parts = [
-    { id: "morning", title: "* [Routine]" },
-    { id: "night", title: "* Night" },
+    { id: "morning", title: "Routine" },
+    { id: "night", title: "Night" },
   ];
   return el("section", { class: "d-routine" },
     parts.map((part) => el("div", { class: "routine" },
-      el("div", { class: "tag" },
-        part.title,
+      sectionHeader(part.title,
         el("button", {
           class: "edit-link",
           title: "Edit this checklist",
           onclick: () => {
-            const next = prompt(`${part.id === "morning" ? "Routine" : "Night"} items, separated by commas:`, data.settings.routines[part.id].join(", "));
+            const next = prompt(`${part.title} items, separated by commas:`, data.settings.routines[part.id].join(", "));
             if (next == null) return;
             data.settings.routines[part.id] = next.split(",").map((s) => s.trim()).filter(Boolean);
             saveData();
             render();
           },
-        }, "edit"),
+        }, "Edit"),
       ),
-      data.settings.routines[part.id].map((item) => el("label", { class: "check" },
-        el("input", {
-          type: "checkbox",
-          checked: Boolean(day.routine[part.id][item]),
-          onchange: (e) => {
-            day.routine[part.id][item] = e.target.checked;
-            saveData();
-          },
-        }),
-        item,
-      )),
+      el("div", { class: "group" },
+        data.settings.routines[part.id].map((item) => el("label", { class: "check" },
+          el("input", {
+            type: "checkbox",
+            checked: Boolean(day.routine[part.id][item]),
+            onchange: (e) => {
+              day.routine[part.id][item] = e.target.checked;
+              saveData();
+            },
+          }),
+          item,
+        )),
+      ),
     )),
   );
 }

@@ -5,11 +5,18 @@ let moodWeekOffset = 0;
 
 function renderOverview(view) {
   view.append(
-    el("div", { class: "ov-head" },
-      el("span", { class: "ov-badge" }, el("span", { class: "icon" }, "✦"), "Overview"),
-      el("h1", {}, "Your rhythm"),
-    ),
+    toolbar({
+      title: "Overview",
+      subtitle: new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }),
+    }),
+    el("div", { class: "ov-head" }, el("h1", {}, "Your rhythm")),
     el("div", { class: "ov-grid" }, activityCard(), todoCard(), focusCard(), moodCard()),
+    // Phones hide the sidebar's backup buttons, so offer them here.
+    el("div", { class: "mobile-backup" },
+      el("button", { class: "ghost", onclick: () => document.getElementById("export").click() }, "Export backup"),
+      el("button", { class: "ghost", onclick: () => document.getElementById("import").click() }, "Import backup"),
+      el("span", {}, "Saved in this browser only."),
+    ),
   );
 }
 
@@ -81,7 +88,7 @@ function todoCard() {
     const when = ev.date === tk ? "Today" : parseKey(ev.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
     return el("button", { class: "todo-item event", onclick: () => openEventDialog(ev) },
       el("div", { class: "todo-title" }, el("i", { class: "sq", style: { background: type.color } }), ev.title),
-      el("div", { class: "chips" }, el("span", { class: "chip", style: { background: type.color } }, type.name)),
+      el("div", { class: "chips" }, el("span", { class: "chip tint", style: { "--c": type.color } }, type.name)),
       el("div", { class: "todo-meta" }, `🗓 ${when} · ${ev.start}–${ev.end}`),
     );
   });
@@ -115,15 +122,16 @@ function focusCard() {
   const rings = picked.map((c) => {
     const mins = totals[c.id] || 0;
     const goal = CATEGORY_GOALS[c.id] * (focusRange === "today" ? 1 : 7);
-    const r = 56;
+    // Activity-style ring: a tinted track with the progress arc on top.
+    const r = 54;
     const circ = 2 * Math.PI * r;
     const frac = Math.min(1, mins / goal);
     const ring = el("div", { class: "ring" });
     ring.innerHTML =
-      `<svg viewBox="0 0 130 130" aria-hidden="true"><circle cx="65" cy="65" r="${r}" fill="none" stroke="#d6d4cf" stroke-width="5"/>` +
-      `<circle cx="65" cy="65" r="${r}" fill="none" stroke="${c.color}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${frac * circ} ${circ}" transform="rotate(-90 65 65)"/></svg>`;
+      `<svg viewBox="0 0 130 130" aria-hidden="true"><circle cx="65" cy="65" r="${r}" fill="none" stroke="${c.color}" stroke-opacity=".18" stroke-width="11"/>` +
+      `<circle cx="65" cy="65" r="${r}" fill="none" stroke="${c.color}" stroke-width="11" stroke-linecap="round" stroke-dasharray="${frac * circ} ${circ}" transform="rotate(-90 65 65)"/></svg>`;
     ring.append(el("div", { class: "ring-text" },
-      el("span", { class: "ring-time" }, `${pad(Math.floor(mins / 60))}:`, el("span", { style: { color: `color-mix(in srgb, ${c.color} 75%, #000)` } }, pad(mins % 60))),
+      el("span", { class: "ring-time" }, `${pad(Math.floor(mins / 60))}:`, el("span", { style: { color: c.color } }, pad(mins % 60))),
       el("span", { class: "ring-name" }, c.name),
       el("span", { class: "ring-goal" }, `goal ${Math.round(goal / 60)}h`),
     ));

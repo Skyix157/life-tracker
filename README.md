@@ -1,6 +1,6 @@
 # Life Tracker
 
-A personal planner and habit tracker modeled on a bullet journal. Plain HTML, CSS and JavaScript — no build step, no dependencies.
+A personal planner and habit tracker modeled on a bullet journal, styled after Apple's macOS 27 UI kit (glass sidebar and toolbar, system colors, light and dark mode). Plain HTML, CSS and JavaScript — no build step, no dependencies.
 
 **Live:** https://skyix157.github.io/life-tracker/
 

@@ -8,14 +8,18 @@ function renderMonthly(view, monthKey) {
   const today = todayKey();
   const monthOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
 
-  const nav = el("div", { class: "page-nav" },
-    el("a", { class: "icon-btn", href: `#/monthly/${monthOf(new Date(year, month - 2, 1))}`, title: "Previous month" }, "‹"),
-    el("a", { class: "icon-btn", href: `#/monthly/${monthOf(new Date(year, month, 1))}`, title: "Next month" }, "›"),
-    el("h2", {}, first.toLocaleDateString(undefined, { month: "long", year: "numeric" })),
-    el("span", { class: "spacer" }),
-    monthKey !== today.slice(0, 7) && el("a", { class: "pill-btn", href: "#/monthly" }, "This month"),
-    el("button", { class: "primary", onclick: () => openEventDialog(null, { date: monthKey === today.slice(0, 7) ? today : `${monthKey}-01` }) }, "+ Add schedule"),
-  );
+  const isThisMonth = monthKey === today.slice(0, 7);
+  const count = data.events.filter((e) => e.date.startsWith(monthKey)).length;
+  const nav = toolbar({
+    title: first.toLocaleDateString(undefined, { month: "long", year: "numeric" }),
+    subtitle: `${count} schedule${count === 1 ? "" : "s"}`,
+    prev: { href: `#/monthly/${monthOf(new Date(year, month - 2, 1))}`, title: "Previous month" },
+    next: { href: `#/monthly/${monthOf(new Date(year, month, 1))}`, title: "Next month" },
+    actions: [
+      !isThisMonth && el("a", { class: "pill-btn", href: "#/monthly" }, "This month"),
+      el("button", { class: "primary", onclick: () => openEventDialog(null, { date: isThisMonth ? today : `${monthKey}-01` }) }, "+ Add schedule"),
+    ],
+  });
 
   const dow = Array.from({ length: 7 }, (_, i) =>
     el("div", { class: "m-dow" }, addDays(gridStart, i).toLocaleDateString(undefined, { weekday: "short" })));
@@ -38,16 +42,16 @@ function renderMonthly(view, monthKey) {
       events.slice(0, 3).map((ev) => el("button", {
         class: "m-pill",
         title: `${ev.title} · ${ev.start}–${ev.end}`,
-        style: { background: findById(EVENT_TYPES, ev.type).color },
+        style: { "--c": findById(EVENT_TYPES, ev.type).color },
         onclick: (e) => {
           e.stopPropagation();
           openEventDialog(ev);
         },
-      }, `${ev.start} ${ev.title}`)),
+      }, el("span", { class: "m-title" }, ev.title), el("span", { class: "m-time" }, ev.start))),
       events.length > 3 && el("span", { class: "m-more" }, `+${events.length - 3} more`),
       day && day.tasks.length > 0 && el("span", { class: "m-meta" }, `✓ ${done}/${day.tasks.length} tasks`),
     );
   });
 
-  view.append(nav, el("div", { class: "month" }, dow, cells), typeLegend());
+  view.append(nav, el("div", { class: "card month-card" }, el("div", { class: "month" }, dow, cells), typeLegend()));
 }
