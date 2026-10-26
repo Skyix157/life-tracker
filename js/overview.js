@@ -9,14 +9,7 @@ function renderOverview(view) {
       title: "Overview",
       subtitle: new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }),
     }),
-    el("div", { class: "ov-head" }, el("h1", {}, "Your rhythm")),
     el("div", { class: "ov-grid" }, activityCard(), todoCard(), focusCard(), moodCard()),
-    // Phones hide the sidebar's backup buttons, so offer them here.
-    el("div", { class: "mobile-backup" },
-      el("button", { class: "ghost", onclick: () => document.getElementById("export").click() }, "Export backup"),
-      el("button", { class: "ghost", onclick: () => document.getElementById("import").click() }, "Import backup"),
-      el("span", {}, "Saved in this browser only."),
-    ),
   );
 }
 

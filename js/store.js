@@ -186,10 +186,10 @@ function svgIcon(markup, cls = "ico") {
 const CHEVRON_LEFT = '<svg viewBox="0 0 20 20"><path d="M12.5 4.5 7 10l5.5 5.5"/></svg>';
 const CHEVRON_RIGHT = '<svg viewBox="0 0 20 20"><path d="M7.5 4.5 13 10l-5.5 5.5"/></svg>';
 
-// The glass toolbar at the top of every page: back/forward, title + subtitle, then actions on the right.
+// The header row at the top of every page: back/forward, title + subtitle, then actions on the right.
 function toolbar({ title, subtitle, prev, next, actions = [] }) {
   return el("div", { class: "page-nav" },
-    prev && el("div", { class: "glass-group" },
+    prev && el("div", { class: "nav-group" },
       el("a", { class: "icon-btn", href: prev.href, title: prev.title }, svgIcon(CHEVRON_LEFT)),
       el("a", { class: "icon-btn", href: next.href, title: next.title }, svgIcon(CHEVRON_RIGHT)),
     ),

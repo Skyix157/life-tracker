@@ -10,8 +10,6 @@ function render() {
   view.replaceChildren();
   view.className = `view view-${page}`;
   for (const a of document.querySelectorAll("#tabs a")) a.classList.toggle("active", a.dataset.page === page);
-  document.getElementById("menubar-page").textContent = page[0].toUpperCase() + page.slice(1);
-
   if (page === "daily") renderDaily(view, dayArg);
   else if (page === "weekly") renderWeekly(view, dayArg);
   else if (page === "monthly") renderMonthly(view, /^\d{4}-\d{2}$/.test(arg) ? arg : todayKey().slice(0, 7));
@@ -19,21 +17,11 @@ function render() {
 }
 
 // Jump to the top when moving to another page or date, but not on in-page re-renders.
-// On desktop the window's content pane scrolls; on phones the page itself does.
+// Jump to the top when moving to another page or date, but not on in-page re-renders.
 window.addEventListener("hashchange", () => {
   render();
-  view.scrollTo(0, 0);
   window.scrollTo(0, 0);
 });
-
-// Menu bar clock.
-function tick() {
-  const now = new Date();
-  document.getElementById("clock").textContent =
-    `${now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}  ${now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
-}
-tick();
-setInterval(tick, 15000);
 
 // --- Schedule dialog (used by weekly, monthly and overview) ---
 const dialog = document.getElementById("event-dialog");
